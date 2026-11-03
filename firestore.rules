@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      // Firebase Console에서 만든 관리자 계정의 UID로 교체하세요.
+      return request.auth != null && request.auth.uid == "REPLACE_WITH_ADMIN_UID";
+    }
+
+    match /applications/{applicationId} {
+      // 누구나 지원서를 제출할 수 있지만 기존 지원서 열람·수정·삭제는 관리자만 가능.
+      allow create: if
+        request.resource.data.keys().hasAll([
+          'stageName', 'field', 'motivation', 'experience',
+          'contact', 'portfolio', 'status', 'interviewAt', 'createdAt'
+        ]) &&
+        request.resource.data.keys().hasOnly([
+          'stageName', 'field', 'motivation', 'experience',
+          'contact', 'portfolio', 'status', 'interviewAt', 'createdAt'
+        ]) &&
+        request.resource.data.stageName is string &&
+        request.resource.data.stageName.size() > 0 &&
+        request.resource.data.stageName.size() <= 50 &&
+        request.resource.data.field in ['BJ·스트리머', '보컬', '댄서', '크리에이터', '편집자', '매니저'] &&
+        request.resource.data.motivation is string &&
+        request.resource.data.motivation.size() > 0 &&
+        request.resource.data.motivation.size() <= 3000 &&
+        request.resource.data.experience is string &&
+        request.resource.data.experience.size() > 0 &&
+        request.resource.data.experience.size() <= 3000 &&
+        request.resource.data.contact is string &&
+        request.resource.data.contact.size() > 0 &&
+        request.resource.data.contact.size() <= 150 &&
+        request.resource.data.portfolio is string &&
+        request.resource.data.portfolio.size() <= 500 &&
+        request.resource.data.status == '접수' &&
+        request.resource.data.interviewAt == '';
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
